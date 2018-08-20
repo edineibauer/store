@@ -19,25 +19,24 @@ class Store extends Elastic
      */
     public function get(string $id = null)
     {
-        $params = [
-            'index' => $this->index,
-            'type' => $this->index,
-            'id' => $id
-        ];
+        $data = parent::getElastic($this->index, $id);
+        if ($data)
+            return $data;
 
-        try {
-            return $this->elasticsearch()->get($params)['_source'];
-        } catch (Exception $e) {
-            return null;
-        }
+        $json = new Json($this->index . "/" . $id);
+        $data = $json->get();
+        if (!empty($data))
+            parent::addElastic($this->index, $id, $data);
+
+        return $data;
     }
 
     /**
      * @param string $id
-     * @param null $data
+     * @param array|null $data
      * @return string
      */
-    public function add(string $id, $data = null): string
+    public function add(string $id, array $data = null): string
     {
         new Json($this->index . '/' . $id, $data);
         return parent::addElastic($this->index, $id, $data);
@@ -45,20 +44,25 @@ class Store extends Elastic
 
     /**
      * @param string $id
+     * @param array|null $data
+     * @return string
      */
-    public function delete(string $id) {
-        $params = [
-            'index' => $this->index,
-            'type' => $this->index,
-            'id' => $id
-        ];
+    public function update(string $id, array $data = null): string
+    {
+        if ($this->get($id)) {
+            $json = new Json($this->index . '/' . $id, $data);
+            $json->save();
+            return parent::updateElastic($this->index, $id, $data);
+        }
+    }
 
+    /**
+     * @param string $id
+     */
+    public function delete(string $id)
+    {
         $json = new Json($this->index . "/" . $id);
         $json->delete();
-
-        try {
-            $this->elasticsearch()->delete($params);
-        } catch (Exception $e) {
-        }
+        parent::deleteElastic($this->index, $id);
     }
 }
