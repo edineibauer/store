@@ -77,20 +77,25 @@ class Json
      */
     private function setFile(string $file)
     {
-        if (!preg_match("/^" . PATH_HOME . "/i", $file)) {
-            $file = PATH_HOME . "_cdn/store/" . (!preg_match('/\//i', $file) ? str_replace('.json', '', $file) . "/{$file}" : $file);
-        } elseif (!preg_match('/\//i', str_replace(PATH_HOME, '', $file))) {
-            $file = PATH_HOME . "_cdn/store/" . str_replace([PATH_HOME, '.json'], '', $file) . "/" . str_replace(PATH_HOME, '', $file);
+        $fileName = str_replace(PATH_HOME, '', $file);
+        if(!preg_match("/^./i", $fileName)) {
+            $justFileName = str_replace('.json', '', $fileName);
+
+            if (!preg_match("/^" . PATH_HOME . "/i", $file)) {
+                $file = PATH_HOME . "_cdn/store/" . (!preg_match('/\//i', $fileName) ? "{$justFileName}/{$file}" : $file);
+            } elseif (!preg_match('/\//i', $fileName)) {
+                $file = PATH_HOME . "_cdn/store/{$justFileName}/{$fileName}";
+            }
+
+            if (!preg_match("/\.json$/i", $file))
+                $file .= ".json";
+
+            $this->fileName = $file;
+            if (file_exists($file))
+                $this->file = json_decode(file_get_contents($file), true);
+            else
+                $this->checkFolder($file);
         }
-
-        if (!preg_match("/\.json$/i", $file))
-            $file .= ".json";
-
-        $this->fileName = $file;
-        if (file_exists($file))
-            $this->file = json_decode(file_get_contents($file), true);
-        else
-            $this->checkFolder($file);
     }
 
     /**
@@ -108,20 +113,8 @@ class Json
                 }
             }
 
-            if (!file_exists(PATH_HOME . $dir . ".htaccess")) {
-                $f = fopen(PATH_HOME . $dir . ".htaccess", "w+");
-                fwrite($f, "Deny from all");
-                fclose($f);
-            }
-
         } else {
             $this->createFolderIfNoExist(PATH_HOME . $file);
-
-            if (!file_exists(PATH_HOME . $file . ".htaccess")) {
-                $f = fopen(PATH_HOME . $file . ".htaccess", "w+");
-                fwrite($f, "Deny from all");
-                fclose($f);
-            }
         }
     }
 
