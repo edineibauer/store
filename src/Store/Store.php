@@ -1,7 +1,5 @@
 <?php
 
-use Core\Check;
-
 class Store extends Elastic
 {
     private $index;

@@ -1,7 +1,6 @@
 <?php
 
 use Elasticsearch\ClientBuilder;
-use Core\Check;
 
 abstract class Elastic
 {
@@ -26,8 +25,8 @@ abstract class Elastic
                 $data = $this->getJson($data);
         }
 
-        $index = strip_tags(trim(Check::name($index)));
-        $id = strip_tags(trim(Check::name(str_replace('.json', '', $id))));
+        $index = strip_tags(trim($this->name($index)));
+        $id = strip_tags(trim($this->name(str_replace('.json', '', $id))));
 
         try {
             $response = $this->elasticsearch()->index([
@@ -65,5 +64,24 @@ abstract class Elastic
         } else {
             return null;
         }
+    }
+
+    /**
+     * <b>Tranforma URL:</b> Tranforma uma string no formato de URL amigável e retorna o a string convertida!
+     * @param STRING $Name = Uma string qualquer
+     * @return STRING
+     */
+    private function name($Name)
+    {
+        $f = array();
+        $f['a'] = 'ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜüÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûýýþÿRr|"!@#$%&*()_-+={[}]/?;:.,\\\'<>°ºª¹²³£¢¬™®★’`§☆●•…”“’‘♥♡■◎≈◉';
+        $f['b'] = "aaaaaaaceeeeiiiidnoooooouuuuuybsaaaaaaaceeeeiiiidnoooooouuuyybyRr                                                            ";
+
+        $data = strtr(utf8_decode($Name), utf8_decode($f['a']), $f['b']);
+        $data = strip_tags(trim($data));
+        $data = str_replace(' ', '-', $data);
+        $data = str_replace(array('-----', '----', '---', '--'), '-', $data);
+
+        return str_replace('?', '-', utf8_decode(strtolower(utf8_encode($data))));
     }
 }

@@ -5,9 +5,6 @@
  * Utilizando como base, diretórios para o index de conteúdo
  */
 
-use Core\Check;
-use Core\Helper;
-
 class StoreFolder extends Elastic
 {
     private $folder;
@@ -63,9 +60,31 @@ class StoreFolder extends Elastic
         $folderNameExplode = explode('/', $folder);
         $type = $folderNameExplode[count($folderNameExplode) - 2];
 
-        foreach (Helper::listFolder($folder) as $file) {
+        foreach ($this->listFolder($folder) as $file) {
             if (preg_match('/\.json$/', $file))
                 parent::addElastic($type, $folder.$file);
         }
+    }
+
+    /**
+     * <b>listFolder:</b> Lista os arquivos e pastas de uma pasta.
+     * @param string $dir = nome do diretório a ser varrido
+     * @param int $limit = nome do diretório a ser varrido
+     * @return array $directory = lista com cada arquivo e pasta no diretório
+     */
+    private function listFolder(string $dir, int $limit = 5000): array
+    {
+        $directory = [];
+        if (file_exists($dir)) {
+            $i = 0;
+            foreach (scandir($dir) as $b):
+                if ($b !== "." && $b !== ".." && $i < $limit):
+                    $directory[] = $b;
+                    $i++;
+                endif;
+            endforeach;
+        }
+
+        return $directory;
     }
 }

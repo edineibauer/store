@@ -1,5 +1,5 @@
 {
-  "name": "singular/store",
+  "name": "single/store",
   "description": "Classes para controle de armazenamento de dados",
   "type": "library",
   "license": "MIT",
@@ -11,12 +11,14 @@
   ],
   "require": {
     "php": "^7.0",
-    "elasticsearch/elasticsearch": "~6.0",
-    "singular/core": "^1.0"
+    "elasticsearch/elasticsearch": "~6.0"
   },
   "autoload": {
     "psr-0": {
       "Store": "src/"
-    }
+    },
+    "classmap": [
+      "src/Store"
+    ]
   }
 }
