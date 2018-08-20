@@ -39,6 +39,7 @@ class Store extends Elastic
      */
     public function add(string $id, $data = null): string
     {
+        new Json($this->index . '/' . $id, $data);
         return parent::addElastic($this->index, $id, $data);
     }
 

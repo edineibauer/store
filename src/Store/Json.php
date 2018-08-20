@@ -8,12 +8,18 @@ class Json
     /**
      * Json constructor.
      * @param string $fileFolder
+     * @param array|null $data
      */
-    public function __construct(string $fileFolder)
+    public function __construct(string $fileFolder, array $data = null)
     {
         $this->file = [];
         if ($fileFolder)
             $this->setFile($fileFolder);
+
+        if($data) {
+            $this->file = $data;
+            $this->save();
+        }
     }
 
     /**
@@ -61,6 +67,12 @@ class Json
      */
     private function setFile(string $file)
     {
+        if(!preg_match("/^" . PATH_HOME . "/i", $file))
+            $file = PATH_HOME . "_cdn/data/" . $file;
+
+        if(!preg_match("/\.json$/i", $file))
+            $file .= ".json";
+
         $this->fileName = $file;
         if (file_exists($file))
             $this->file = json_decode(file_get_contents($file), true);
@@ -74,12 +86,16 @@ class Json
     private function checkFolder(string $file)
     {
         $dir = "";
-        $folders = explode('/', str_replace([PATH_HOME, HOME], '', $file));
-        foreach ($folders as $i => $folder) {
-            if ($i < count($folders) - 1) {
-                $dir .= $folder . "/";
-                $this->createFolderIfNoExist(PATH_HOME . $dir);
+        if(preg_match('/\//i', $file)) {
+            $folders = explode('/', str_replace([PATH_HOME, HOME], '', $file));
+            foreach ($folders as $i => $folder) {
+                if ($i < count($folders) - 1) {
+                    $dir .= $folder . "/";
+                    $this->createFolderIfNoExist(PATH_HOME . $dir);
+                }
             }
+        } else {
+            $this->createFolderIfNoExist(PATH_HOME . $file);
         }
     }
 
