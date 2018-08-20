@@ -16,8 +16,8 @@ class Json
         if ($fileFolder)
             $this->setFile($fileFolder);
 
-        if($data) {
-            if(empty($this->file)) {
+        if ($data) {
+            if (empty($this->file)) {
                 $this->file = $data;
                 $this->save();
             } else {
@@ -66,8 +66,9 @@ class Json
         }
     }
 
-    public function delete() {
-        if(file_exists($this->fileName))
+    public function delete()
+    {
+        if (file_exists($this->fileName))
             unlink($this->fileName);
     }
 
@@ -76,10 +77,13 @@ class Json
      */
     private function setFile(string $file)
     {
-        if(!preg_match("/^" . PATH_HOME . "/i", $file))
-            $file = PATH_HOME . "_cdn/data/" . $file;
+        if (!preg_match("/^" . PATH_HOME . "/i", $file)) {
+            $file = PATH_HOME . "_cdn/store/" . (!preg_match('/\//i', $file) ? str_replace('.json', '', $file) . "/{$file}" : $file);
+        } elseif (!preg_match('/\//i', str_replace(PATH_HOME, '', $file))) {
+            $file = PATH_HOME . "_cdn/store/" . str_replace([PATH_HOME, '.json'], '', $file) . "/" . str_replace(PATH_HOME, '', $file);
+        }
 
-        if(!preg_match("/\.json$/i", $file))
+        if (!preg_match("/\.json$/i", $file))
             $file .= ".json";
 
         $this->fileName = $file;
@@ -95,7 +99,7 @@ class Json
     private function checkFolder(string $file)
     {
         $dir = "";
-        if(preg_match('/\//i', $file)) {
+        if (preg_match('/\//i', $file)) {
             $folders = explode('/', str_replace([PATH_HOME, HOME], '', $file));
             foreach ($folders as $i => $folder) {
                 if ($i < count($folders) - 1) {
@@ -103,8 +107,21 @@ class Json
                     $this->createFolderIfNoExist(PATH_HOME . $dir);
                 }
             }
+
+            if (!file_exists(PATH_HOME . $dir . ".htaccess")) {
+                $f = fopen(PATH_HOME . $dir . ".htaccess", "w+");
+                fwrite($f, "Deny from all");
+                fclose($f);
+            }
+
         } else {
             $this->createFolderIfNoExist(PATH_HOME . $file);
+
+            if (!file_exists(PATH_HOME . $file . ".htaccess")) {
+                $f = fopen(PATH_HOME . $file . ".htaccess", "w+");
+                fwrite($f, "Deny from all");
+                fclose($f);
+            }
         }
     }
 
