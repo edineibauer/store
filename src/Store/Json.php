@@ -62,6 +62,11 @@ class Json
         }
     }
 
+    public function delete() {
+        if(file_exists($this->fileName))
+            unlink($this->fileName);
+    }
+
     /**
      * @param mixed $file
      */

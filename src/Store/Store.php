@@ -53,6 +53,8 @@ class Store extends Elastic
             'id' => $id
         ];
 
+        $json = new Json($this->index . "/" . $id);
+        $json->delete();
 
         try {
             $this->elasticsearch()->delete($params);
