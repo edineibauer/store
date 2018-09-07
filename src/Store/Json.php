@@ -78,7 +78,7 @@ class Json
     private function setFile(string $file)
     {
         $fileName = str_replace(PATH_HOME, '', $file);
-        if(!preg_match("/^./i", $fileName)) {
+        if(!preg_match("/^\./i", $fileName)) {
             $justFileName = str_replace('.json', '', $fileName);
 
             if (!preg_match("/^" . PATH_HOME . "/i", $file)) {
