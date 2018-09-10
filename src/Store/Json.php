@@ -2,129 +2,145 @@
 
 class Json
 {
+    private $folder;
     private $file;
-    private $fileName;
 
     /**
      * Json constructor.
-     * @param string $fileFolder
-     * @param array|null $data
+     * @param string|null $folder
      */
-    public function __construct(string $fileFolder, array $data = null)
+    public function __construct(string $folder = null)
     {
-        $this->file = [];
-        if ($fileFolder)
-            $this->setFile($fileFolder);
-
-        if ($data) {
-            if (empty($this->file)) {
-                $this->file = $data;
-                $this->save();
-            } else {
-                $this->file = $this->arrayMerge($this->file, $data);
-            }
-        }
-    }
-
-    /**
-     * @return array
-     */
-    public function get(): array
-    {
-        return $this->file;
-    }
-
-    /**
-     * adiciona um valor ao array
-     * @param $content
-     */
-    public function add($content)
-    {
-        if ($this->fileName && !in_array($content, $this->file))
-            $this->file[] = $content;
-    }
-
-    /**
-     * Remove um valor do array
-     * @param $content
-     */
-    public function remove($content)
-    {
-        if ($this->fileName && in_array($content, $this->file))
-            $this->file = array_diff($this->file, [$content]);
-    }
-
-    /**
-     * Salva o json atual
-     */
-    public function save()
-    {
-        if ($this->fileName) {
-            $f = fopen($this->fileName, "w");
-            fwrite($f, json_encode($this->file));
-            fclose($f);
-        }
-    }
-
-    public function delete()
-    {
-        if (file_exists($this->fileName))
-            unlink($this->fileName);
-    }
-
-    /**
-     * @param mixed $file
-     */
-    private function setFile(string $file)
-    {
-        $fileName = str_replace(PATH_HOME, '', $file);
-        if(!preg_match("/^\./i", $fileName)) {
-            $justFileName = str_replace('.json', '', $fileName);
-
-            if (!preg_match("/^" . PATH_HOME . "/i", $file)) {
-                $file = PATH_HOME . "_cdn/store/" . (!preg_match('/\//i', $fileName) ? "{$justFileName}/{$file}" : $file);
-            } elseif (!preg_match('/\//i', $fileName)) {
-                $file = PATH_HOME . "_cdn/store/{$justFileName}/{$fileName}";
-            }
-
-            if (!preg_match("/\.json$/i", $file))
-                $file .= ".json";
-
-            $this->fileName = $file;
-            if (file_exists($file))
-                $this->file = json_decode(file_get_contents($file), true);
-            else
-                $this->checkFolder($file);
-        }
-    }
-
-    /**
-     * @param string $file
-     */
-    private function checkFolder(string $file)
-    {
-        $dir = "";
-        if (preg_match('/\//i', $file)) {
-            $folders = explode('/', str_replace([PATH_HOME, HOME], '', $file));
-            foreach ($folders as $i => $folder) {
-                if ($i < count($folders) - 1) {
-                    $dir .= $folder . "/";
-                    $this->createFolderIfNoExist(PATH_HOME . $dir);
-                }
-            }
-
-        } else {
-            $this->createFolderIfNoExist(PATH_HOME . $file);
-        }
+        $this->folder = $folder ?? "store";
     }
 
     /**
      * @param string $folder
      */
-    private function createFolderIfNoExist(string $folder)
+    public function setFolder(string $folder)
     {
-        if (!file_exists($folder) && !is_dir($folder))
-            mkdir($folder, 0777);
+        $this->folder = $folder;
+    }
+
+    /**
+     * @param string $file
+     * @return array
+     */
+    public function get(string $file): array
+    {
+        $this->setFile($file);
+        if (file_exists($this->file))
+            return json_decode(file_get_contents($this->file), true);
+
+        return [];
+    }
+
+    /**
+     * Cria ou Atualiza arquivo
+     *
+     * @param string $id
+     * @param array $data
+     */
+    public function save(string $id, array $data)
+    {
+        $this->setFile($id);
+        if ($this->file) {
+            if (file_exists($this->file)) {
+                // update
+                $this->update($id, $data);
+            } else {
+                // add
+                $this->add($id, $data);
+            }
+        }
+    }
+
+    /**
+     * Adiciona arquivo Json
+     *
+     * @param string $id
+     * @param array $data
+     * @return bool
+     */
+    public function add(string $id, array $data): bool
+    {
+        try {
+            $this->setFile($id);
+            if ($this->file) {
+                $this->checkFolder();
+                $f = fopen($this->file, "w+");
+                fwrite($f, json_encode($data));
+                fclose($f);
+
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Atualiza arquivo Json
+     *
+     * @param string $id
+     * @param array $data
+     * @return bool
+     */
+    public function update(string $id, array $data): bool
+    {
+        $this->setFile($id);
+        if ($this->file && file_exists($this->file)) {
+            return $this->add($id, $this->arrayMerge($this->get($id), $data));
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Deleta um arquivo json
+     *
+     * @param string $id
+     */
+    public function delete(string $id)
+    {
+        $this->setFile($id);
+        if (file_exists($this->file))
+            unlink($this->file);
+    }
+
+    /**
+     * Seta o caminho do arquivo Json a ser trabalhado
+     *
+     * @param mixed $file
+     */
+    private function setFile(string $file)
+    {
+        if (!$this->file) {
+            $this->file = (preg_match("/^" . preg_quote(PATH_HOME, '/') . "/i", $file) ? $file : PATH_HOME . "_cdn/{$this->folder}/{$file}");
+
+            // Verifica se é final .json
+            if (!preg_match("/\.json$/i", $file))
+                $this->file .= ".json";
+        }
+    }
+
+    /**
+     * Cria diretório caminho do arquivo caso não exista
+     */
+    private function checkFolder()
+    {
+        $dir = PATH_HOME;
+        $folders = explode('/', str_replace(PATH_HOME, '', $this->file));
+        $max = count($folders) -1;
+        foreach ($folders as $i => $folder) {
+            $dir .= $folder . "/";
+            if($i < $max) {
+                if (!file_exists($dir) && !is_dir($dir))
+                    mkdir($dir, 0777);
+            }
+        }
     }
 
     /**
@@ -132,9 +148,8 @@ class Json
      * @param array $array2
      * @return array
      */
-    private function arrayMerge(array &$array1, array &$array2): array
+    private function arrayMerge(array $merged, array &$array2): array
     {
-        $merged = $array1;
         foreach ($array2 as $key => &$value) {
             if (is_array($value) && isset($merged[$key]) && is_array($merged[$key]))
                 $merged[$key] = $this->arrayMerge($merged[$key], $value);

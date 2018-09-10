@@ -11,6 +11,7 @@
   ],
   "require": {
     "php": "^7.0",
+    "ext-json": "^1",
     "elasticsearch/elasticsearch": "~6.0"
   },
   "autoload": {

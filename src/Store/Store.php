@@ -1,16 +1,25 @@
 <?php
 
-class Store extends Elastic
+class Store
 {
-    private $index;
+    private $type;
+    private $json;
+    private $elastic;
 
     /**
      * Store constructor.
-     * @param string $index
+     * @param string $type
+     * @param string|null $index
      */
-    public function __construct(string $index)
+    public function __construct(string $type, string $index = null)
     {
-        $this->index = $index;
+        $this->type = $type;
+        $this->elastic = new ElasticCrud($type);
+
+        $this->json = new Json($index ?? "store" . "/" . $type);
+
+        if(!file_exists(PATH_HOME . "_cdn/.htaccess"))
+            $this->createDeny();
     }
 
     /**
@@ -19,27 +28,41 @@ class Store extends Elastic
      */
     public function get(string $id = null)
     {
-        $data = parent::getElastic($this->index, $id);
+        $data = $this->elastic->get($id);
         if ($data)
             return $data;
 
-        $json = new Json($this->index . "/" . $id);
-        $data = $json->get();
+        $data = $this->json->get($id);
         if (!empty($data))
-            parent::addElastic($this->index, $id, $data);
+            $this->elastic->add($id, $data);
 
         return $data;
     }
 
     /**
+     * Cria ou Atualiza um Registro
+     *
+     * @param string $id
+     * @param array $data
+     * @return string
+     */
+    public function save(string $id, array $data): string
+    {
+        $this->json->save($id, $data);
+        return $this->elastic->save($id, $data);
+    }
+
+    /**
+     * Cria Registro
+     *
      * @param string $id
      * @param array|null $data
      * @return string
      */
     public function add(string $id, array $data = null): string
     {
-        new Json($this->index . '/' . $id, $data);
-        return parent::addElastic($this->index, $id, $data);
+        $this->json->add($id, $data);
+        return $this->elastic->add($id, $data);
     }
 
     /**
@@ -49,11 +72,8 @@ class Store extends Elastic
      */
     public function update(string $id, array $data = null): string
     {
-        if ($this->get($id)) {
-            $json = new Json($this->index . '/' . $id, $data);
-            $json->save();
-            return parent::updateElastic($this->index, $id, $data);
-        }
+        $this->json->update($id, $data);
+        return $this->elastic->update($id, $data);
     }
 
     /**
@@ -61,8 +81,14 @@ class Store extends Elastic
      */
     public function delete(string $id)
     {
-        $json = new Json($this->index . "/" . $id);
-        $json->delete();
-        parent::deleteElastic($this->index, $id);
+        $this->json->delete($id);
+        $this->elastic->delete($id);
+    }
+
+    private function createDeny()
+    {
+        $f = fopen(PATH_HOME . "_cdn/.htaccess", "w+");
+        fwrite($f, "Deny from all");
+        fclose($f);
     }
 }

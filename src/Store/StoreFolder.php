@@ -5,22 +5,24 @@
  * Utilizando como base, diretórios para o index de conteúdo
  */
 
-class StoreFolder extends Elastic
+class StoreFolder
 {
-    private $folder;
+    private $file;
+    private $json;
+    private $elastic;
 
     /**
-     * Store constructor.
-     * @param string $index
+     * StoreFolder constructor.
      */
     public function __construct()
     {
-        $this->folder = PATH_HOME . "_cdn/store/directoryList.json";
+        $this->file = "directoryList";
+        $this->json = new Json("store/folderContent/");
+        $this->elastic = new ElasticCrud("folderContent");
     }
 
     public function reIndexFolders() {
-        $json = new Json($this->folder);
-        foreach ($json->get() as $folder)
+        foreach ($this->json->get($this->file) as $folder)
             $this->addFolderToElastic($folder);
     }
 
@@ -30,9 +32,11 @@ class StoreFolder extends Elastic
      */
     public function addFolder(string $folder)
     {
-        $rep = new Json($this->folder);
-        $rep->add($folder);
-        $rep->save();
+        $rep = $this->json->get($this->file);
+        if(!in_array($folder, $rep))
+            $rep[] = $folder;
+
+        $this->json->save($this->file, $rep);
 
         $this->addFolderToElastic($folder);
     }
@@ -43,26 +47,26 @@ class StoreFolder extends Elastic
      */
     public function removeFolder(string $folder)
     {
-        $rep = new Json($this->folder);
-        $rep->remove($folder);
-        $rep->save();
+        $rep = $this->json->get($this->file);
+        unset($rep[$folder]);
+        $this->json->update($this->file, $rep);
     }
 
     /**
-     * Adiciona os conteúdos da Pasta ao Elastic
+     * Adiciona os conteúdos da Pasta ao ElasticCrud
      * @param string $folder
      */
     private function addFolderToElastic(string $folder)
     {
-        if (!preg_match('/\/$/i', $folder))
-            $folder .= "/";
-
-        $folderNameExplode = explode('/', $folder);
-        $type = $folderNameExplode[count($folderNameExplode) - 2];
-
-        foreach ($this->listFolder($folder) as $file) {
-            if (preg_match('/\.json$/', $file))
-                parent::addElastic($type, $folder.$file);
+        if(preg_match("/^" . preg_quote(PATH_HOME) . "/i", $folder)) {
+            $c = explode('/', str_replace(PATH_HOME, '',$folder));
+            if(count($c) > 1) {
+                $elastic = new ElasticCrud($c[count($c)-2]);
+            foreach ($this->listFolder($folder) as $file) {
+                if (preg_match('/\.json$/', $file))
+                    $elastic->add(str_replace('.json', '', $file), json_decode(file_get_contents($file), true));
+            }
+            }
         }
     }
 
