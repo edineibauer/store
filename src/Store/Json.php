@@ -1,5 +1,7 @@
 <?php
 
+namespace Store;
+
 use Helper\Helper;
 
 class Json
@@ -32,9 +34,12 @@ class Json
     {
         $id = pathinfo($file, PATHINFO_FILENAME);
         $this->setFile($file);
-        if (file_exists($this->file))
-            return array_merge(["id" => $id], json_decode(file_get_contents($this->file), true));
-
+        try {
+            if (file_exists($this->file))
+                return array_merge(["id" => $id], json_decode(file_get_contents($this->file), true));
+        } catch (\Exception $e) {
+            return [];
+        }
         return [];
     }
 
@@ -81,7 +86,7 @@ class Json
             } else {
                 return false;
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return false;
         }
     }
@@ -139,10 +144,10 @@ class Json
     {
         $dir = PATH_HOME;
         $folders = explode('/', str_replace(PATH_HOME, '', $this->file));
-        $max = count($folders) -1;
+        $max = count($folders) - 1;
         foreach ($folders as $i => $folder) {
             $dir .= $folder . "/";
-            if($i < $max)
+            if ($i < $max)
                 Helper::createFolderIfNoExist($dir);
         }
     }

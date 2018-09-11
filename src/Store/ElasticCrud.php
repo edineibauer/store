@@ -1,5 +1,7 @@
 <?php
 
+namespace Store;
+
 use \Helper\Helper;
 
 abstract class ElasticCrud extends ElasticCore
@@ -16,7 +18,7 @@ abstract class ElasticCrud extends ElasticCore
                 return array_merge(["id" => $data['_id']], $data['_source']);
 
             return [];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [];
         }
     }
@@ -42,7 +44,7 @@ abstract class ElasticCrud extends ElasticCore
             $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => $data]));
             return $response['result'];
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return "Erro {$e}";
         }
     }
@@ -62,7 +64,7 @@ abstract class ElasticCrud extends ElasticCore
                 $data['updated'] = strtotime("now");
                 $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => Helper::arrayMerge($dados, $data)]));
                 return $response['result'];
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 return "Erro {$e}";
             }
         } else {
@@ -85,7 +87,7 @@ abstract class ElasticCrud extends ElasticCore
                 $data['updated'] = strtotime("now");
                 $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => $data]));
                 return $response['result'];
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 return "Erro {$e}";
             }
         } else {
@@ -102,7 +104,7 @@ abstract class ElasticCrud extends ElasticCore
     {
         try {
             $this->elasticsearch()->delete($this->getBase(["id" => $id]));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
         }
     }
 }

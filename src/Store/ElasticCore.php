@@ -1,5 +1,7 @@
 <?php
 
+namespace Store;
+
 abstract class ElasticCore extends ElasticConnection
 {
     private $index;

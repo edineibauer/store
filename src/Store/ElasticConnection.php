@@ -1,5 +1,7 @@
 <?php
 
+namespace Store;
+
 use Elasticsearch\ClientBuilder;
 
 abstract class ElasticConnection

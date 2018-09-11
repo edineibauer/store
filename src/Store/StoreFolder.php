@@ -5,6 +5,8 @@
  * Utilizando como base, diretórios para o index de conteúdo
  */
 
+namespace Store;
+
 class StoreFolder
 {
     private $file;

@@ -1,5 +1,7 @@
 <?php
 
+namespace Store;
+
 use \Helper\Helper;
 
 class ElasticSearch extends ElasticCore
@@ -27,7 +29,7 @@ class ElasticSearch extends ElasticCore
             }
 
             return $data;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return null;
         }
     }
@@ -37,7 +39,6 @@ class ElasticSearch extends ElasticCore
      *
      * @param array $param
      * @param string $term
-     * @return array|null
      */
     public function and(array $param, string $term = "term")
     {
@@ -53,7 +54,6 @@ class ElasticSearch extends ElasticCore
      *
      * @param array $param
      * @param string $term
-     * @return array|null
      */
     public function or(array $param, string $term = "term")
     {
@@ -134,7 +134,7 @@ class ElasticSearch extends ElasticCore
     {
         try {
             $this->result = $this->elasticsearch()->search($this->getBody($this->filter))['hits'];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
         }
     }
 }
