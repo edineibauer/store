@@ -2,6 +2,8 @@
 
 namespace Store;
 
+use Helper\Convert;
+
 class Store extends ElasticCrud
 {
     private $type;
@@ -10,15 +12,17 @@ class Store extends ElasticCrud
     /**
      * Store constructor.
      * @param string $type
+     * @param bool $versionamento
      * @param string|null $index
      */
-    public function __construct(string $type, string $index = null)
+    public function __construct(string $type, bool $versionamento = true, string $index = null)
     {
         parent::__construct($type);
         $this->type = $type;
         $this->json = new Json($index ?? "store" . "/" . $type);
+        $this->json->setVersionamento($versionamento);
 
-        if(!file_exists(PATH_HOME . "_cdn/.htaccess"))
+        if (!file_exists(PATH_HOME . "_cdn/.htaccess"))
             $this->createDeny();
     }
 
@@ -28,11 +32,11 @@ class Store extends ElasticCrud
      */
     public function get(string $id = null): array
     {
-        if ($data = parent::get($id))
+        if ($data = parent::getElastic($id))
             return $data;
 
         $data = $this->json->get($id);
-        if (!empty($data))
+        if ($data && !preg_match('/#/i', $id))
             parent::add($id, $data);
 
         return $data;

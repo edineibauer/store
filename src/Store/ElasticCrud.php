@@ -2,6 +2,7 @@
 
 namespace Store;
 
+use Helper\Convert;
 use \Helper\Helper;
 
 abstract class ElasticCrud extends ElasticCore
@@ -10,10 +11,10 @@ abstract class ElasticCrud extends ElasticCore
      * @param string $id
      * @return array
      */
-    protected function get(string $id): array
+    protected function getElastic(string $id): array
     {
         try {
-            $data = $this->elasticsearch()->get($this->getBase(["id" => $id]));
+            $data = $this->elasticsearch()->get($this->getBase(["id" => Convert::name($id)]));
             if ($data)
                 return array_merge(["id" => $data['_id']], $data['_source']);
 
@@ -32,7 +33,7 @@ abstract class ElasticCrud extends ElasticCore
      */
     protected function save(string $id, array $data = []): string
     {
-        if ($dados = $this->get($id)) {
+        if ($dados = $this->getElastic($id)) {
             unset($data['created']);
             $data = Helper::arrayMerge($dados, $data);
         } else {
@@ -41,7 +42,7 @@ abstract class ElasticCrud extends ElasticCore
 
         try {
             $data['updated'] = strtotime("now");
-            $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => $data]));
+            $response = $this->elasticsearch()->index($this->getBase(["id" => Convert::name($id), "body" => $data]));
             return $response['result'];
 
         } catch (\Exception $e) {
@@ -58,11 +59,11 @@ abstract class ElasticCrud extends ElasticCore
      */
     protected function update(string $id, array $data): string
     {
-        if ($dados = $this->get($id)) {
+        if ($dados = $this->getElastic($id)) {
             try {
                 unset($data['created']);
                 $data['updated'] = strtotime("now");
-                $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => Helper::arrayMerge($dados, $data)]));
+                $response = $this->elasticsearch()->index($this->getBase(["id" => Convert::name($id), "body" => Helper::arrayMerge($dados, $data)]));
                 return $response['result'];
             } catch (\Exception $e) {
                 return "Erro {$e}";
@@ -81,11 +82,11 @@ abstract class ElasticCrud extends ElasticCore
      */
     protected function add(string $id, array $data = []): string
     {
-        if (!$this->get($id)) {
+        if (!$this->getElastic($id)) {
             try {
                 $data['created'] = strtotime("now");
                 $data['updated'] = strtotime("now");
-                $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => $data]));
+                $response = $this->elasticsearch()->index($this->getBase(["id" => Convert::name($id), "body" => $data]));
                 return $response['result'];
             } catch (\Exception $e) {
                 return "Erro {$e}";
@@ -103,7 +104,7 @@ abstract class ElasticCrud extends ElasticCore
     protected function delete(string $id)
     {
         try {
-            $this->elasticsearch()->delete($this->getBase(["id" => $id]));
+            $this->elasticsearch()->delete($this->getBase(["id" => Convert::name($id)]));
         } catch (\Exception $e) {
         }
     }

@@ -2,12 +2,14 @@
 
 namespace Store;
 
+use Helper\Convert;
 use Helper\Helper;
 
-class Json
+class Json extends VersionControl
 {
     private $folder;
     private $file;
+    private $versionamento = true;
 
     /**
      * Json constructor.
@@ -15,7 +17,8 @@ class Json
      */
     public function __construct(string $folder = null)
     {
-        $this->folder = $folder ?? "store";
+        $this->folder = $folder ? Convert::name($folder, ["/"]) : "store";
+        parent::__construct($this->folder);
     }
 
     /**
@@ -27,13 +30,21 @@ class Json
     }
 
     /**
+     * @param bool $versionamento
+     */
+    public function setVersionamento(bool $versionamento)
+    {
+        $this->versionamento = $versionamento;
+    }
+
+    /**
      * @param string $file
      * @return array
      */
     public function get(string $file): array
     {
-        $id = pathinfo($file, PATHINFO_FILENAME);
         $this->setFile($file);
+        $id = Convert::name(pathinfo($file, PATHINFO_FILENAME));
         try {
             if (file_exists($this->file))
                 return array_merge(["id" => $id], json_decode(file_get_contents($this->file), true));
@@ -54,11 +65,8 @@ class Json
         $this->setFile($id);
         if ($this->file) {
             if (file_exists($this->file)) {
-                // update
                 $this->update($id, $data);
             } else {
-                // add
-                $data['created'] = strtotime("now");
                 $this->add($id, $data);
             }
         }
@@ -71,12 +79,22 @@ class Json
      * @param array $data
      * @return bool
      */
-    public function add(string $id, array $data): bool
+    public function add(string $id, array $data = []): bool
     {
         try {
             $this->setFile($id);
             if ($this->file) {
+
+                if (!file_exists($this->file)) {
+                    //Novo
+                    $data['created'] = strtotime("now");
+                    if ($this->versionamento)
+                        parent::deleteVerion($this->file);
+                } else {
+                    unset($data['created']);
+                }
                 $data['updated'] = strtotime("now");
+
                 $this->checkFolder();
                 $f = fopen($this->file, "w+");
                 fwrite($f, json_encode($data));
@@ -95,15 +113,17 @@ class Json
      * Atualiza arquivo Json
      *
      * @param string $id
-     * @param array $data
+     * @param array $dadosUpdate
      * @return bool
      */
-    public function update(string $id, array $data): bool
+    public function update(string $id, array $dadosUpdate): bool
     {
         $this->setFile($id);
         if ($this->file && file_exists($this->file)) {
-            unset($data['created']);
-            return $this->add($id, Helper::arrayMerge($this->get($id), $data));
+            $dadosAtuais = $this->get($id);
+            if ($this->versionamento)
+                parent::createVerion($this->file, $dadosAtuais);
+            return $this->add($id, Helper::arrayMerge($dadosAtuais, $dadosUpdate));
         } else {
             return false;
         }
@@ -117,8 +137,11 @@ class Json
     public function delete(string $id)
     {
         $this->setFile($id);
-        if (file_exists($this->file))
+        if (file_exists($this->file)) {
+            if ($this->versionamento)
+                parent::createVerion($this->file, $this->get($id));
             unlink($this->file);
+        }
     }
 
     /**
@@ -129,6 +152,7 @@ class Json
     private function setFile(string $file)
     {
         if (!$this->file) {
+            $file = Convert::name($file, ["#"]);
             $this->file = (preg_match("/^" . preg_quote(PATH_HOME, '/') . "/i", $file) ? $file : PATH_HOME . "_cdn/{$this->folder}/{$file}");
 
             // Verifica se é final .json
