@@ -1,5 +1,7 @@
 <?php
 
+use Helper\Helper;
+
 class Json
 {
     private $folder;
@@ -51,6 +53,7 @@ class Json
                 $this->update($id, $data);
             } else {
                 // add
+                $data['created'] = strtotime("now");
                 $this->add($id, $data);
             }
         }
@@ -68,6 +71,7 @@ class Json
         try {
             $this->setFile($id);
             if ($this->file) {
+                $data['updated'] = strtotime("now");
                 $this->checkFolder();
                 $f = fopen($this->file, "w+");
                 fwrite($f, json_encode($data));
@@ -93,7 +97,8 @@ class Json
     {
         $this->setFile($id);
         if ($this->file && file_exists($this->file)) {
-            return $this->add($id, $this->arrayMerge($this->get($id), $data));
+            unset($data['created']);
+            return $this->add($id, Helper::arrayMerge($this->get($id), $data));
         } else {
             return false;
         }
@@ -137,26 +142,8 @@ class Json
         $max = count($folders) -1;
         foreach ($folders as $i => $folder) {
             $dir .= $folder . "/";
-            if($i < $max) {
-                if (!file_exists($dir) && !is_dir($dir))
-                    mkdir($dir, 0777);
-            }
+            if($i < $max)
+                Helper::createFolderIfNoExist($dir);
         }
-    }
-
-    /**
-     * @param array $array1
-     * @param array $array2
-     * @return array
-     */
-    private function arrayMerge(array $merged, array &$array2): array
-    {
-        foreach ($array2 as $key => &$value) {
-            if (is_array($value) && isset($merged[$key]) && is_array($merged[$key]))
-                $merged[$key] = $this->arrayMerge($merged[$key], $value);
-            else
-                $merged[$key] = $value;
-        }
-        return $merged;
     }
 }

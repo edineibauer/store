@@ -1,10 +1,9 @@
 <?php
 
-class Store
+class Store extends ElasticCrud
 {
     private $type;
     private $json;
-    private $elastic;
 
     /**
      * Store constructor.
@@ -13,9 +12,8 @@ class Store
      */
     public function __construct(string $type, string $index = null)
     {
+        parent::__construct($type);
         $this->type = $type;
-        $this->elastic = new ElasticCrud($type);
-
         $this->json = new Json($index ?? "store" . "/" . $type);
 
         if(!file_exists(PATH_HOME . "_cdn/.htaccess"))
@@ -28,13 +26,13 @@ class Store
      */
     public function get(string $id = null)
     {
-        $data = $this->elastic->get($id);
+        $data = parent::get($id);
         if ($data)
             return $data;
 
         $data = $this->json->get($id);
         if (!empty($data))
-            $this->elastic->add($id, $data);
+            parent::add($id, $data);
 
         return $data;
     }
@@ -46,10 +44,10 @@ class Store
      * @param array $data
      * @return string
      */
-    public function save(string $id, array $data): string
+    public function save(string $id, array $data = []): string
     {
         $this->json->save($id, $data);
-        return $this->elastic->save($id, $data);
+        return parent::save($id, $data);
     }
 
     /**
@@ -59,10 +57,10 @@ class Store
      * @param array|null $data
      * @return string
      */
-    public function add(string $id, array $data = null): string
+    public function add(string $id, array $data = []): string
     {
         $this->json->add($id, $data);
-        return $this->elastic->add($id, $data);
+        return parent::add($id, $data);
     }
 
     /**
@@ -73,7 +71,7 @@ class Store
     public function update(string $id, array $data = null): string
     {
         $this->json->update($id, $data);
-        return $this->elastic->update($id, $data);
+        return parent::update($id, $data);
     }
 
     /**
@@ -82,7 +80,7 @@ class Store
     public function delete(string $id)
     {
         $this->json->delete($id);
-        $this->elastic->delete($id);
+        parent::delete($id);
     }
 
     private function createDeny()

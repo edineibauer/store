@@ -1,12 +1,14 @@
 <?php
 
-class ElasticCrud extends ElasticCore
+use \Helper\Helper;
+
+abstract class ElasticCrud extends ElasticCore
 {
     /**
      * @param string $id
      * @return array|null
      */
-    public function get(string $id)
+    protected function get(string $id)
     {
         try {
             $data = $this->elasticsearch()->get($this->getBase(["id" => $id]));
@@ -23,12 +25,17 @@ class ElasticCrud extends ElasticCore
      * @param array $data
      * @return string
      */
-    public function save(string $id, $data = []): string
+    protected function save(string $id, array $data = []): string
     {
-        if ($dados = $this->get($id))
-            $data = $this->arrayMerge($dados, $data);
+        if ($dados = $this->get($id)) {
+            unset($data['created']);
+            $data = Helper::arrayMerge($dados, $data);
+        } else {
+            $data['created'] = strtotime("now");
+        }
 
         try {
+            $data['updated'] = strtotime("now");
             $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => $data]));
             return $response['result'];
 
@@ -44,11 +51,13 @@ class ElasticCrud extends ElasticCore
      * @param array $data
      * @return string
      */
-    public function update(string $id, array $data): string
+    protected function update(string $id, array $data): string
     {
         if ($dados = $this->get($id)) {
             try {
-                $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => $this->arrayMerge($dados, $data)]));
+                unset($data['created']);
+                $data['updated'] = strtotime("now");
+                $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => Helper::arrayMerge($dados, $data)]));
                 return $response['result'];
             } catch (Exception $e) {
                 return "Erro {$e}";
@@ -65,10 +74,12 @@ class ElasticCrud extends ElasticCore
      * @param array $data
      * @return string
      */
-    public function add(string $id, $data = []): string
+    protected function add(string $id, array $data = []): string
     {
         if (!$this->get($id)) {
             try {
+                $data['created'] = strtotime("now");
+                $data['updated'] = strtotime("now");
                 $response = $this->elasticsearch()->index($this->getBase(["id" => $id, "body" => $data]));
                 return $response['result'];
             } catch (Exception $e) {
@@ -84,28 +95,11 @@ class ElasticCrud extends ElasticCore
      *
      * @param string $id
      */
-    public function delete(string $id)
+    protected function delete(string $id)
     {
         try {
             $this->elasticsearch()->delete($this->getBase(["id" => $id]));
         } catch (Exception $e) {
         }
-    }
-
-    /**
-     * @param array $array1
-     * @param array $array2
-     * @return array
-     */
-    private function arrayMerge(array &$array1, array &$array2): array
-    {
-        $merged = $array1;
-        foreach ($array2 as $key => &$value) {
-            if (is_array($value) && isset($merged[$key]) && is_array($merged[$key]))
-                $merged[$key] = $this->arrayMerge($merged[$key], $value);
-            else
-                $merged[$key] = $value;
-        }
-        return $merged;
     }
 }

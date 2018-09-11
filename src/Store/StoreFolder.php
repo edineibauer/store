@@ -18,7 +18,7 @@ class StoreFolder
     {
         $this->file = "directoryList";
         $this->json = new Json("store/folderContent/");
-        $this->elastic = new ElasticCrud("folderContent");
+        $this->elastic = new Elasticsearch("folderContent");
     }
 
     public function reIndexFolders() {
@@ -61,7 +61,7 @@ class StoreFolder
         if(preg_match("/^" . preg_quote(PATH_HOME) . "/i", $folder)) {
             $c = explode('/', str_replace(PATH_HOME, '',$folder));
             if(count($c) > 1) {
-                $elastic = new ElasticCrud($c[count($c)-2]);
+                $elastic = new ElasticSearch($c[count($c)-2]);
             foreach ($this->listFolder($folder) as $file) {
                 if (preg_match('/\.json$/', $file))
                     $elastic->add(str_replace('.json', '', $file), json_decode(file_get_contents($file), true));
