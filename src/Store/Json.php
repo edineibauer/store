@@ -28,9 +28,10 @@ class Json
      */
     public function get(string $file): array
     {
+        $id = pathinfo($file, PATHINFO_FILENAME);
         $this->setFile($file);
         if (file_exists($this->file))
-            return json_decode(file_get_contents($this->file), true);
+            return array_merge(["id" => $id], json_decode(file_get_contents($this->file), true));
 
         return [];
     }

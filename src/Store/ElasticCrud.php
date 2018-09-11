@@ -9,7 +9,8 @@ class ElasticCrud extends ElasticCore
     public function get(string $id)
     {
         try {
-            return $this->elasticsearch()->getSource($this->getBase(["id" => $id]));
+            $data = $this->elasticsearch()->get($this->getBase(["id" => $id]));
+            return array_merge(["id" => $data['_id']], $data['_source']);
         } catch (Exception $e) {
             return null;
         }

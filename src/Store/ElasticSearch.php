@@ -59,7 +59,7 @@ class ElasticSearch extends ElasticCore
     public function getResultBest(): array
     {
         if ($this->result && $this->result['total'] > 0)
-            return $this->result['hits'][0]['_source'];
+            return array_merge(["id" => $this->result['hits'][0]['_id']], $this->result['hits'][0]['_source']);
 
         return [];
     }
