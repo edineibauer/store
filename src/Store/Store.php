@@ -24,10 +24,9 @@ class Store extends ElasticCrud
      * @param string $id
      * @return array
      */
-    public function get(string $id = null)
+    public function get(string $id = null): array
     {
-        $data = parent::get($id);
-        if ($data)
+        if ($data = parent::get($id))
             return $data;
 
         $data = $this->json->get($id);

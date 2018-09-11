@@ -6,15 +6,18 @@ abstract class ElasticCrud extends ElasticCore
 {
     /**
      * @param string $id
-     * @return array|null
+     * @return array
      */
-    protected function get(string $id)
+    protected function get(string $id): array
     {
         try {
             $data = $this->elasticsearch()->get($this->getBase(["id" => $id]));
-            return array_merge(["id" => $data['_id']], $data['_source']);
+            if ($data)
+                return array_merge(["id" => $data['_id']], $data['_source']);
+
+            return [];
         } catch (Exception $e) {
-            return null;
+            return [];
         }
     }
 

@@ -16,8 +16,17 @@ class ElasticSearch extends ElasticCore
     public function get(string $id)
     {
         try {
-            $data = $this->elasticsearch()->get($this->getBase(["id" => $id]));
-            return array_merge(["id" => $data['_id']], $data['_source']);
+            if ($data = $this->elasticsearch()->get($this->getBase(["id" => $id])))
+                return array_merge(["id" => $data['_id']], $data['_source']);
+
+            $json = new Json("store/" . parent::getType());
+            $data = $json->get($id);
+            if (!empty($data)){
+                $store = new Store(parent::getIndex());
+                $store->add($id, $data);
+            }
+
+            return $data;
         } catch (Exception $e) {
             return null;
         }
