@@ -48,8 +48,8 @@ class ElasticSearch extends ElasticCore
      */
     public function or(array $param, string $term = "term")
     {
-        if(!empty($this->filter['bool']['must'])) {
-            $this->filter['bool']['should'] = Helper::arrayMerge($this->filter['bool']['must'],$this->convertArray($param, $term));
+        if(!empty($this->filter['bool']['should'])) {
+            $this->filter['bool']['should'] = Helper::arrayMerge($this->filter['bool']['should'],$this->convertArray($param, $term));
         } else {
             $this->filter['bool']['should'] = $this->convertArray($param, $term);
         }
