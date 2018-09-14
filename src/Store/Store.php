@@ -2,8 +2,6 @@
 
 namespace Store;
 
-use Helper\Convert;
-
 class Store extends ElasticCrud
 {
     private $type;
@@ -86,6 +84,32 @@ class Store extends ElasticCrud
     {
         $this->json->delete($id);
         parent::delete($id);
+    }
+
+    /**
+     * Obtém os dados de uma versão anterior
+     *
+     * @param string $id
+     * @param int $version
+     * @return array
+     */
+    public function getVersion(string $id, int $version = 1): array
+    {
+        return $this->json->getVersion($id, $version);
+    }
+
+    /**
+     * Atualiza os dados para uma versão anterior
+     *
+     * @param string $id
+     * @param int $version
+     */
+    public function rollBack(string $id, int $version = 1)
+    {
+        if($dataBack = $this->json->getVersion($id, $version)) {
+            $this->json->update($id, $dataBack, $version);
+            parent::update($id, $dataBack);
+        }
     }
 
     private function createDeny()

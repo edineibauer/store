@@ -8,6 +8,7 @@ use Helper\Helper;
 class Json extends VersionControl
 {
     private $folder;
+    private $id;
     private $file;
     private $versionamento = true;
 
@@ -114,15 +115,16 @@ class Json extends VersionControl
      *
      * @param string $id
      * @param array $dadosUpdate
+     * @param int $recursiveVersion
      * @return bool
      */
-    public function update(string $id, array $dadosUpdate): bool
+    public function update(string $id, array $dadosUpdate, int $recursiveVersion = 99): bool
     {
         $this->setFile($id);
         if ($this->file && file_exists($this->file)) {
             $dadosAtuais = $this->get($id);
             if ($this->versionamento)
-                parent::createVerion($this->file, $dadosAtuais);
+                parent::createVerion($this->file, $dadosAtuais, $recursiveVersion);
             return $this->add($id, Helper::arrayMerge($dadosAtuais, $dadosUpdate));
         } else {
             return false;
@@ -145,18 +147,51 @@ class Json extends VersionControl
     }
 
     /**
+     * Obtém os dados de uma versão anterior
+     *
+     * @param string $id
+     * @param int $version
+     * @return array
+     */
+    public function getVersion(string $id, int $version = 1): array
+    {
+        $this->setFile($id);
+        $id = Convert::name(pathinfo($id, PATHINFO_FILENAME));
+        try {
+            $fileName = str_replace("{$id}.json", "version/{$id}#{$version}.json", $this->file);
+            if (file_exists($fileName))
+                return array_merge(["id" => $id], json_decode(file_get_contents($fileName), true));
+        } catch (\Exception $e) {
+            return [];
+        }
+        return [];
+    }
+
+    /**
+     * Recupera uma versão anterior
+     *
+     * @param string $id
+     * @param int $version
+     */
+    public function rollBack(string $id, int $version = 1)
+    {
+
+    }
+
+    /**
      * Seta o caminho do arquivo Json a ser trabalhado
      *
-     * @param mixed $file
+     * @param mixed $id
      */
-    private function setFile(string $file)
+    private function setFile(string $id)
     {
-        if (!$this->file) {
-            $file = Convert::name($file, ["#"]);
-            $this->file = (preg_match("/^" . preg_quote(PATH_HOME, '/') . "/i", $file) ? $file : PATH_HOME . "_cdn/{$this->folder}/{$file}");
+        if (!$this->id || $id != $this->id) {
+            $this->id = $id;
+            $id = Convert::name($id, ["#"]);
+            $this->file = (preg_match("/^" . preg_quote(PATH_HOME, '/') . "/i", $id) ? $id : PATH_HOME . "_cdn/{$this->folder}/{$id}");
 
             // Verifica se é final .json
-            if (!preg_match("/\.json$/i", $file))
+            if (!preg_match("/\.json$/i", $id))
                 $this->file .= ".json";
         }
     }

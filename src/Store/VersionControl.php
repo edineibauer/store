@@ -24,11 +24,12 @@ abstract class VersionControl
      *
      * @param string $file
      * @param array $data
+     * @param int $recursiveVersion
      */
-    protected function createVerion(string $file, array $data)
+    protected function createVerion(string $file, array $data, int $recursiveVersion = 99)
     {
         list($id, $folder) = $this->getBaseInfo($file);
-        $idVersion = $this->getLastVersion(PATH_HOME . "_cdn/{$folder}/{$id}");
+        $idVersion = $this->getLastVersion(PATH_HOME . "_cdn/{$folder}/{$id}", $recursiveVersion);
 
         $json = new Json($folder);
         $json->setVersionamento(false);
@@ -46,7 +47,7 @@ abstract class VersionControl
 
         //Deleta qualquer versão existente
         for ($i = $this->backup; $i > 0; $i--) {
-            if(file_exists(PATH_HOME . "_cdn/{$folder}/version/{$id}#{$i}.json"))
+            if (file_exists(PATH_HOME . "_cdn/{$folder}/version/{$id}#{$i}.json"))
                 unlink(PATH_HOME . "_cdn/{$folder}/version/{$id}#{$i}.json");
         }
 
@@ -59,20 +60,22 @@ abstract class VersionControl
      * Retorna/Controla a versão mais atual
      *
      * @param string $url
+     * @param int $recursiveVersion
      * @return int
      */
-    private function getLastVersion(string $url): int
+    private function getLastVersion(string $url, int $recursiveVersion = 99): int
     {
+        $recursiveVersion++;
         for ($idVersion = $this->backup; $idVersion > 0; $idVersion--) {
             if (!file_exists("{$url}#{$idVersion}.json")) {
                 break;
             } elseif ($idVersion === 1) {
-
                 //chegou ao limite e não encontrou vaga.
                 //Rename files to remove last and free first
-                for ($i = $this->backup; $i > 1; $i--)
-                    rename("{$url}#" . ($i - 1) . ".json", "{$url}#{$i}.json");
-
+                for ($i = $this->backup; $i > 1; $i--) {
+                    if ($i < $recursiveVersion)
+                        rename("{$url}#" . ($i - 1) . ".json", "{$url}#{$i}.json");
+                }
                 break;
             }
         }
