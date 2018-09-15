@@ -11,6 +11,7 @@ abstract class ElasticConnection
     private $pass = "pass";
     private $port = "9200";
     private $sslCacert;
+    private $client;
 
     /**
      * @param array $host
@@ -57,12 +58,15 @@ abstract class ElasticConnection
      */
     protected function elasticsearch()
     {
-        $host = ['http' . ($this->sslCacert ? 's' : '') . "://{$this->user}:{$this->pass}@{$this->host}:{$this->port}"];
-        $client = ClientBuilder::create()->setHosts($host);
+        if(!$this->client) {
+            $host = ['http' . ($this->sslCacert ? 's' : '') . "://{$this->user}:{$this->pass}@{$this->host}:{$this->port}"];
+            $client = ClientBuilder::create()->setHosts($host);
 
-        if($this->sslCacert)
-            $client->setSSLVerification($this->sslCacert);
+            if ($this->sslCacert)
+                $client->setSSLVerification($this->sslCacert);
+            $this->client = $client->build();
+        }
 
-        return $client->build();
+        return $this->client;
     }
 }

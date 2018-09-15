@@ -6,6 +6,8 @@ abstract class ElasticCore extends ElasticConnection
 {
     private $index;
     private $type;
+    private $limit;
+    private $offset;
     private $async = false;
 
     /**
@@ -15,6 +17,7 @@ abstract class ElasticCore extends ElasticConnection
     public function __construct(string $type)
     {
         $this->setType($type);
+        $this->limit = 50;
     }
 
     /**
@@ -35,6 +38,22 @@ abstract class ElasticCore extends ElasticConnection
     }
 
     /**
+     * @param int $limit
+     */
+    public function setLimit(int $limit)
+    {
+        $this->limit = $limit;
+    }
+
+    /**
+     * @param int $offset
+     */
+    public function setOffset(int $offset)
+    {
+        $this->offset = $offset;
+    }
+
+    /**
      * Ativa Desativa Async Search
      * @param bool $async
      */
@@ -49,6 +68,14 @@ abstract class ElasticCore extends ElasticConnection
     public function getIndex(): string
     {
         return $this->index;
+    }
+
+    /**
+     * @return int
+     */
+    protected function getOffset(): int
+    {
+        return $this->offset ?? 0;
     }
 
     /**
@@ -84,6 +111,8 @@ abstract class ElasticCore extends ElasticConnection
         $body = [
             'index' => $this->index,
             'type' => $this->type,
+            "scroll" => "1s",
+            "size" => $this->limit,
             'body' => ["query" => $param]
         ];
 
