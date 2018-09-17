@@ -8,31 +8,6 @@ class ElasticSearch extends ElasticCore
     private $result;
 
     /**
-     * Obtém através de um ID
-     *
-     * @param string $id
-     * @return array|null
-     */
-    public function get(string $id)
-    {
-        try {
-            if ($data = $this->elasticsearch()->get($this->getBase(["id" => $id])))
-                return array_merge(["id" => $data['_id']], $data['_source']);
-
-            $json = new Json("store/" . parent::getType());
-            $data = $json->get($id);
-            if (!empty($data)) {
-                $store = new Store(parent::getIndex());
-                $store->add($id, $data);
-            }
-
-            return $data;
-        } catch (\Exception $e) {
-            return null;
-        }
-    }
-
-    /**
      * Precisa que os valores existam
      * Gera Score
      *
@@ -55,32 +30,6 @@ class ElasticSearch extends ElasticCore
     public function queryMustNot(array $param): ElasticSearch
     {
         $this->filter['must_not'] = $this->convertArray($param, "must_not", "term");
-        return $this;
-    }
-
-    /**
-     * Precisa que a coluna tenha valores nulos
-     * Gera Score
-     *
-     * @param string $column
-     * @return $this
-     */
-    public function sqlNull(string $column): ElasticSearch
-    {
-        $this->filter['must_not'] = $this->convertArray(["field" => $column], "must_not", "exists");
-        return $this;
-    }
-
-    /**
-     * Precisa que a coluna tenha valores não nulos
-     * Gera Score
-     *
-     * @param string $column
-     * @return $this
-     */
-    public function sqlNotNull(string $column): ElasticSearch
-    {
-        $this->filter['must'] = $this->convertArray(["field" => $column], "must", "exists");
         return $this;
     }
 
@@ -114,22 +63,75 @@ class ElasticSearch extends ElasticCore
     }
 
     /**
-     * @param array $param
+     * Precisa que a coluna tenha valores nulos
+     * Gera Score
+     *
+     * @param string $column
+     * @return $this
+     */
+    public function columnNull(string $column): ElasticSearch
+    {
+        $this->filter['must_not'] = $this->convertArray(["field" => $column], "must_not", "exists");
+        return $this;
+    }
+
+    /**
+     * Precisa que a coluna tenha valores não nulos
+     * Gera Score
+     *
+     * @param string $column
+     * @return $this
+     */
+    public function columnNotNull(string $column): ElasticSearch
+    {
+        $this->filter['must'] = $this->convertArray(["field" => $column], "must", "exists");
+        return $this;
+    }
+
+    /**
+     * @param string $column
+     * @param $value
      * @return ElasticSearch
      */
-    public function sqlLike(array $param): ElasticSearch
+    public function columnIquals(string $column, $value): ElasticSearch
     {
-        foreach ($param as $c => $v) {
-            if(is_array($v)) {
-                foreach ($v as $item) {
-                    $param[$c][] = (strpos($item. " ", '*') === false ? "*{$item}*" : $item);
-                }
-            } else {
-                $param[$c] = (strpos($v. " ", '*') === false ? "*{$v}*" : $v);
-            }
-        }
+        $this->filter['filter'] = $this->convertArray([$column => $value], "filter", "term");
+        return $this;
+    }
 
-        $this->filter['filter'] = $this->convertArray($param, "filter", "wildcard");
+    /**
+     * Aplica Filtro com limite do valor
+     *
+     * @param string $column
+     * @param $minimo
+     * @param $maximo
+     * @return ElasticSearch
+     */
+    public function columnRange(string $column, $minimo, $maximo): ElasticSearch
+    {
+        $this->filter['must']['range'][$column] = ['gte' => $minimo, 'lte' => $maximo];
+        return $this;
+    }
+
+    /**
+     * @param string $column
+     * @param mixed $gte
+     * @return ElasticSearch
+     */
+    public function columnGreaterThan(string $column, $gte): ElasticSearch
+    {
+        $this->filter['must']['range'][$column]['gte'] = $gte;
+        return $this;
+    }
+
+    /**
+     * @param string $column
+     * @param mixed $lte
+     * @return ElasticSearch
+     */
+    public function columnLessThan(string $column, $lte): ElasticSearch
+    {
+        $this->filter['must']['range'][$column]['lte'] = $lte;
         return $this;
     }
 
@@ -137,9 +139,52 @@ class ElasticSearch extends ElasticCore
      * @param array $param
      * @return ElasticSearch
      */
-    public function sqlLikePrefix(array $param): ElasticSearch
+    public function sqlLike(array $param): ElasticSearch
+    {
+        $nParam = [];
+        foreach ($param as $c => $v) {
+            if (is_array($v)) {
+                foreach ($v as $item)
+                    $nParam[$c][] = (strpos($item . " ", '*') === false ? "*{$item}*" : $item);
+            } else {
+                $nParam[$c] = (strpos($v . " ", '*') === false ? "*{$v}*" : $v);
+            }
+        }
+
+        $this->filter['filter'] = $this->convertArray($nParam, "filter", "wildcard");
+        return $this;
+    }
+
+    /**
+     * @param array $param
+     * @return ElasticSearch
+     */
+    public function sqlLikeBegin(array $param): ElasticSearch
     {
         $this->filter['filter'] = $this->convertArray($param, "filter", "prefix");
+        return $this;
+    }
+
+    /**
+     * @param array $param
+     * @return ElasticSearch
+     */
+    public function sqlLikeEnd(array $param): ElasticSearch
+    {
+        $nParam = [];
+        foreach ($param as $c => $v) {
+            if (is_array($v)) {
+                foreach ($v as $item) {
+                    if (strpos($item . " ", '*') === false)
+                        $nParam[$c][] = "*{$item}";
+                }
+            } else {
+                if (strpos($v . " ", '*') === false)
+                    $nParam[$c] = "*{$v}";
+            }
+        }
+
+        $this->filter['filter'] = $this->convertArray($nParam, "filter", "wildcard");
         return $this;
     }
 
@@ -171,16 +216,21 @@ class ElasticSearch extends ElasticCore
     /**
      * Single Result
      *
+     * @param string|null $id
      * @return array
      */
-    public function getResult(): array
+    public function getResult(string $id = null): array
     {
-        $this->query();
+        if ($id) {
+            return $this->getResultById($id);
+        } else {
+            $this->query();
 
-        if ($this->result && !empty($this->result['hits']['hits']) && $this->result['hits']['total'] > 0)
-            return array_merge(["id" => $this->result['hits']['hits'][0]['_id']], $this->result['hits']['hits'][0]['_source']);
+            if ($this->result && !empty($this->result['hits']['hits']) && $this->result['hits']['total'] > 0)
+                return array_merge(["id" => $this->result['hits']['hits'][0]['_id']], $this->result['hits']['hits'][0]['_source']);
 
-        return [];
+            return [];
+        }
     }
 
     /**
@@ -192,10 +242,10 @@ class ElasticSearch extends ElasticCore
      */
     public function getResults(int $limit = 0, int $offset = 0)
     {
-        if($limit > 0)
+        if ($limit > 0)
             parent::setLimit($limit);
 
-        if($offset > 0)
+        if ($offset > 0)
             parent::setOffset($offset);
 
         $this->query();
@@ -251,45 +301,6 @@ class ElasticSearch extends ElasticCore
     }
 
     /**
-     * Operações na Query
-     *
-     * @param array $param
-     * @param string $context
-     * @param string $term
-     */
-    private function operator(array $param, string $context, string $term)
-    {
-        if (!empty($this->filter[$context])) {
-            $this->filter[$context] = array_merge($this->filter[$context], $this->convertArray($param, $context, $term));
-        } else {
-            $this->filter[$context] = $this->convertArray($param, $context, $term);
-        }
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getFilter()
-    {
-        return $this->filter;
-    }
-
-    /**
-     * operação OR em array com term ou match.
-     *
-     * @param array $param
-     * @param string $term
-     */
-    private function orOperator(array $param, string $term)
-    {
-        if (!empty($this->filter['should'])) {
-            $this->filter['should'] = array_merge($this->filter['should'], $this->convertArray($param, $term));
-        } else {
-            $this->filter['should'] = $this->convertArray($param, $term);
-        }
-    }
-
-    /**
      * Converte um array em um array associativo ao termo passado
      *
      * @param array $data
@@ -303,9 +314,9 @@ class ElasticSearch extends ElasticCore
         foreach ($data as $column => $value) {
             if (is_array($value)) {
                 foreach ($value as $v)
-                    $dataReturn = (!empty($dataReturn) ? array_merge($dataReturn, $this->convertArrayValue($column, $v, $dataReturn, $context, $term)) : $this->convertArrayValue($column, $v, $dataReturn, $context, $term));
+                    $dataReturn = $this->convertArrayValue($column, $v, $dataReturn, $term);
             } else {
-                $dataReturn = $this->convertArrayValue($column, $value, $dataReturn, $context, $term);
+                $dataReturn = $this->convertArrayValue($column, $value, $dataReturn, $term);
             }
         }
 
@@ -316,11 +327,10 @@ class ElasticSearch extends ElasticCore
      * @param $column
      * @param $value
      * @param array $dataReturn
-     * @param string $context
      * @param string $term
      * @return array
      */
-    private function convertArrayValue($column, $value, array $dataReturn, string $context, string $term)
+    private function convertArrayValue($column, $value, array $dataReturn, string $term)
     {
         if ($term === "term" && is_string($value) && strpos(trim($value), ' ') !== false) {
             foreach (explode(' ', trim($value)) as $item) {
@@ -349,13 +359,47 @@ class ElasticSearch extends ElasticCore
     }
 
     /**
+     * Obtém através de um ID
+     *
+     * @param string $id
+     * @return array|null
+     */
+    private function getResultById(string $id)
+    {
+        try {
+            if ($data = $this->elasticsearch()->get($this->getBase(["id" => $id])))
+                return array_merge(["id" => $data['_id']], $data['_source']);
+
+            $json = new Json("store/" . parent::getType());
+            $data = $json->get($id);
+            if (!empty($data)) {
+                $store = new Store(parent::getIndex());
+                $store->add($id, $data);
+            }
+
+            return $data;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    /**
      * Executa a query DSL e atribui o result
      *
      */
     private function query()
     {
         try {
-            $filter = (empty($this->filter) ? ["match_all" => new \stdClass()] : ["bool" => $this->filter]);
+            if (!empty($this->fiflter['more_like_this']))
+                $filter = $this->filter;
+            else
+                $filter = (empty($this->filter) ? ["match_all" => new \stdClass()] : ["bool" => $this->filter]);
+//            $filter['bool']['filter'][0]['term'] = ["user" => "roger"];
+//            $filter['bool']['filter'][1]['term'] = ["user" => "nena"];
+//            $filter['bool']['filter'][2]['term'] = ["password" => 2];
+//            var_dump($filter['bool']['filter']);
+//            var_dump($filter['bool']['must']);
+//            var_dump($filter['bool']['should']);
 
             $this->result = $this->elasticsearch()->search($this->getBody($filter));
         } catch (\Exception $e) {
