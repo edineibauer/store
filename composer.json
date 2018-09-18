@@ -12,9 +12,9 @@
   "require": {
     "php": "^7.0",
     "single/helper": "^1",
-    "ext-json": "^1",
-    "ext-mbstring": "^1",
-    "elasticsearch/elasticsearch": "~6.0"
+    "ext-json": "~1",
+    "ext-mbstring": "~1",
+    "elasticsearch/elasticsearch": "^6"
   },
   "autoload": {
     "psr-0": {
