@@ -332,19 +332,31 @@ class ElasticSearch extends ElasticCore
      */
     private function convertArrayValue($column, $value, array $dataReturn, string $term)
     {
-        if ($term === "term" && is_string($value) && strpos(trim($value), ' ') !== false) {
-            foreach (explode(' ', trim($value)) as $item) {
-                if (is_string($item))
-                    $item = mb_strtolower($item);
-                $dataReturn[] = [$term => [$column => $item]];
-            }
-        } else {
-            if (is_string($value))
-                $value = mb_strtolower(trim($value));
-            $dataReturn[] = [$term => [$column => $value]];
+        if ($term === "term" && is_string($value) && preg_match("/(@|\s|-|=|!|#|$|%|¨|&|\*|\(|\)|_|\+|\/|\\|\||\?|;|:|,|<|>|}|{|\]|\[|~|^|°|º|ª)/i", trim($value))) {
+            $ex = array_filter(preg_split("/(@|\s|-|=|!|#|$|%|¨|&|\*|\(|\)|_|\+|\/|\\|\||\?|;|:|,|<|>|}|{|\]|\[|~|^|°|º|ª)/i", trim($value)), function ($value) {
+                return ($value !== null && $value !== false && $value !== true && $value !== '');
+            });
+            foreach ($ex as $item)
+                $dataReturn[] = $this->tokenize($term, $column, $item);
+
+            return $dataReturn;
         }
+        $dataReturn[] = $this->tokenize($term, $column, $value);
 
         return $dataReturn;
+    }
+
+    /**
+     * @param string $term
+     * @param string $column
+     * @param $value
+     * @return array
+     */
+    private function tokenize(string $term, string $column, $value): array
+    {
+        if (is_string($value))
+            $value = mb_strtolower(trim($value));
+        return [$term => [$column => $value]];
     }
 
     /**
@@ -394,12 +406,6 @@ class ElasticSearch extends ElasticCore
                 $filter = $this->filter;
             else
                 $filter = (empty($this->filter) ? ["match_all" => new \stdClass()] : ["bool" => $this->filter]);
-//            $filter['bool']['filter'][0]['term'] = ["user" => "roger"];
-//            $filter['bool']['filter'][1]['term'] = ["user" => "nena"];
-//            $filter['bool']['filter'][2]['term'] = ["password" => 2];
-//            var_dump($filter['bool']['filter']);
-//            var_dump($filter['bool']['must']);
-//            var_dump($filter['bool']['should']);
 
             $this->result = $this->elasticsearch()->search($this->getBody($filter));
         } catch (\Exception $e) {
