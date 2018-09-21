@@ -89,22 +89,19 @@ class Json extends VersionControl
                 if (!file_exists($this->file)) {
                     //Novo
                     $data['created'] = strtotime("now");
+                    $data['updated'] = strtotime("now");
                     if ($this->versionamento)
                         parent::deleteVerion($this->file);
-                } else {
-                    unset($data['created']);
+
+                    $this->checkFolder();
+                    $f = fopen($this->file, "w+");
+                    fwrite($f, json_encode($data));
+                    fclose($f);
+
+                    return true;
                 }
-                $data['updated'] = strtotime("now");
-
-                $this->checkFolder();
-                $f = fopen($this->file, "w+");
-                fwrite($f, json_encode($data));
-                fclose($f);
-
-                return true;
-            } else {
-                return false;
             }
+            return false;
         } catch (\Exception $e) {
             return false;
         }
@@ -122,10 +119,18 @@ class Json extends VersionControl
     {
         $this->setFile($id);
         if ($this->file && file_exists($this->file)) {
+            $dadosUpdate['updated'] = strtotime("now");
             $dadosAtuais = $this->get($id);
+            unset($dadosAtuais['id']);
             if ($this->versionamento)
                 parent::createVerion($this->file, $dadosAtuais, $recursiveVersion);
-            return $this->add($id, Helper::arrayMerge($dadosAtuais, $dadosUpdate));
+
+            $this->checkFolder();
+            $f = fopen($this->file, "w+");
+            fwrite($f, json_encode(Helper::arrayMerge($dadosAtuais, $dadosUpdate)));
+            fclose($f);
+
+            return true;
         } else {
             return false;
         }
@@ -140,8 +145,11 @@ class Json extends VersionControl
     {
         $this->setFile($id);
         if (file_exists($this->file)) {
-            if ($this->versionamento)
-                parent::createVerion($this->file, $this->get($id));
+            if ($this->versionamento) {
+                $dadosAtuais = $this->get($id);
+                unset($dadosAtuais['id']);
+                parent::createVerion($this->file, $dadosAtuais);
+            }
             unlink($this->file);
         }
     }

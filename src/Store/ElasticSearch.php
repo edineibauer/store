@@ -214,7 +214,7 @@ class ElasticSearch extends ElasticCore
     public function sqlAnd(array $param): ElasticSearch
     {
         foreach ($param as $c => $value) {
-            if(!is_array($value))
+            if (!is_array($value))
                 $this->iquals[$c] = $value;
         }
         $this->filter['filter'] = $this->convertArray($param, "filter", "term");
@@ -247,15 +247,15 @@ class ElasticSearch extends ElasticCore
         } else {
             $this->query();
 
-            if ($this->result && !empty($this->result['hits']['hits']) && $this->result['hits']['total'] > 0){
+            if ($this->result && !empty($this->result['hits']['hits']) && $this->result['hits']['total'] > 0) {
                 foreach ($this->result['hits']['hits'] as $item) {
-                    if(!empty($this->iquals)){
+                    if (!empty($this->iquals)) {
                         $check = true;
                         foreach ($this->iquals as $c => $v) {
-                            if($item['_source'][$c] !== $v)
+                            if ($item['_source'][$c] !== $v)
                                 $check = false;
                         }
-                        if($check)
+                        if ($check)
                             return array_merge(["id" => $item['_id']], $item['_source']);
                     } else {
                         return array_merge(["id" => $this->result['hits']['hits'][0]['_id']], $this->result['hits']['hits'][0]['_source']);
@@ -316,14 +316,14 @@ class ElasticSearch extends ElasticCore
     {
         $result = [];
 
-        foreach ($resultados['hits']['hits'] as $item){
-            if(!empty($this->iquals)){
+        foreach ($resultados['hits']['hits'] as $item) {
+            if (!empty($this->iquals)) {
                 $check = true;
                 foreach ($this->iquals as $c => $v) {
-                    if($item['_source'][$c] !== $v)
+                    if ($item['_source'][$c] !== $v)
                         $check = false;
                 }
-                if($check)
+                if ($check)
                     $result[] = array_merge(["id" => $item['_id'], "_index" => $item['_index'], "_score" => $item['_score']], $item['_source']);
             } else {
                 $result[] = array_merge(["id" => $item['_id'], "_index" => $item['_index'], "_score" => $item['_score']], $item['_source']);
@@ -342,7 +342,19 @@ class ElasticSearch extends ElasticCore
     {
         $this->query();
 
-        return $this->result['hits']['total'];
+        $cont = $this->result['hits']['total'];
+        if (!empty($this->iquals)) {
+            foreach ($this->result['hits']['hits'] as $item) {
+                foreach ($this->iquals as $c => $v) {
+                    if ($item['_source'][$c] !== $v) {
+                        $cont--;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $cont;
     }
 
     /**
