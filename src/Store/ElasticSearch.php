@@ -6,6 +6,7 @@ class ElasticSearch extends ElasticCore
 {
     private $filter;
     private $result;
+    private $iquals;
 
     /**
      * Precisa que os valores existam
@@ -89,11 +90,27 @@ class ElasticSearch extends ElasticCore
     }
 
     /**
+     * Valor deve ser igual ao existente armazenado
+     *
      * @param string $column
      * @param $value
      * @return ElasticSearch
      */
     public function columnIquals(string $column, $value): ElasticSearch
+    {
+        $this->iquals[$column] = $value;
+        $this->filter['filter'] = $this->convertArray([$column => $value], "filter", "term");
+        return $this;
+    }
+
+    /**
+     * Valor deve estar presente no banco
+     *
+     * @param string $column
+     * @param $value
+     * @return ElasticSearch
+     */
+    public function columnMust(string $column, $value): ElasticSearch
     {
         $this->filter['filter'] = $this->convertArray([$column => $value], "filter", "term");
         return $this;
@@ -196,6 +213,10 @@ class ElasticSearch extends ElasticCore
      */
     public function sqlAnd(array $param): ElasticSearch
     {
+        foreach ($param as $c => $value) {
+            if(!is_array($value))
+                $this->iquals[$c] = $value;
+        }
         $this->filter['filter'] = $this->convertArray($param, "filter", "term");
         return $this;
     }
@@ -226,8 +247,21 @@ class ElasticSearch extends ElasticCore
         } else {
             $this->query();
 
-            if ($this->result && !empty($this->result['hits']['hits']) && $this->result['hits']['total'] > 0)
-                return array_merge(["id" => $this->result['hits']['hits'][0]['_id']], $this->result['hits']['hits'][0]['_source']);
+            if ($this->result && !empty($this->result['hits']['hits']) && $this->result['hits']['total'] > 0){
+                foreach ($this->result['hits']['hits'] as $item) {
+                    if(!empty($this->iquals)){
+                        $check = true;
+                        foreach ($this->iquals as $c => $v) {
+                            if($item['_source'][$c] !== $v)
+                                $check = false;
+                        }
+                        if($check)
+                            return array_merge(["id" => $item['_id']], $item['_source']);
+                    } else {
+                        return array_merge(["id" => $this->result['hits']['hits'][0]['_id']], $this->result['hits']['hits'][0]['_source']);
+                    }
+                }
+            }
 
             return [];
         }
@@ -282,8 +316,19 @@ class ElasticSearch extends ElasticCore
     {
         $result = [];
 
-        foreach ($resultados['hits']['hits'] as $item)
-            $result[] = array_merge(["id" => $item['_id'], "_index" => $item['_index'], "_score" => $item['_score']], $item['_source']);
+        foreach ($resultados['hits']['hits'] as $item){
+            if(!empty($this->iquals)){
+                $check = true;
+                foreach ($this->iquals as $c => $v) {
+                    if($item['_source'][$c] !== $v)
+                        $check = false;
+                }
+                if($check)
+                    $result[] = array_merge(["id" => $item['_id'], "_index" => $item['_index'], "_score" => $item['_score']], $item['_source']);
+            } else {
+                $result[] = array_merge(["id" => $item['_id'], "_index" => $item['_index'], "_score" => $item['_score']], $item['_source']);
+            }
+        }
 
         return $result;
     }
@@ -402,7 +447,7 @@ class ElasticSearch extends ElasticCore
     private function query()
     {
         try {
-            if (!empty($this->fiflter['more_like_this']))
+            if (!empty($this->filter['more_like_this']))
                 $filter = $this->filter;
             else
                 $filter = (empty($this->filter) ? ["match_all" => new \stdClass()] : ["bool" => $this->filter]);
