@@ -431,9 +431,9 @@ class ElasticSearch extends ElasticCore
      * Obtém através de um ID
      *
      * @param string $id
-     * @return array|null
+     * @return array
      */
-    private function getResultById(string $id)
+    private function getResultById(string $id): array
     {
         try {
             if ($data = $this->elasticsearch()->get($this->getBase(["id" => $id])))
@@ -448,7 +448,7 @@ class ElasticSearch extends ElasticCore
 
             return $data;
         } catch (\Exception $e) {
-            return null;
+            return [];
         }
     }
 
