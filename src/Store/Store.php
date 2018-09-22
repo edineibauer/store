@@ -9,19 +9,22 @@ class Store extends ElasticCrud
 
     /**
      * Store constructor.
+     *
      * @param string $type
-     * @param bool $versionamento
+     * @param bool $versionamento -> Se ativo, grava versões dos arquivos jsons
+     * @param bool $storeJson -> Se ativo, armazena os dados em json, senão, somente no ElasticSearch
      * @param string|null $index
      */
-    public function __construct(string $type, bool $versionamento = true, string $index = null)
+    public function __construct(string $type, bool $versionamento = true, bool $storeJson = true, string $index = null)
     {
         parent::__construct($type);
         $this->type = $type;
-        $this->json = new Json($index ?? "store" . "/" . $type);
-        $this->json->setVersionamento($versionamento);
-
-        if (!file_exists(PATH_HOME . "_cdn/.htaccess"))
-            $this->createDeny();
+        if ($storeJson) {
+            $this->json = new Json($index ?? "store" . "/" . $type);
+            $this->json->setVersionamento($versionamento);
+            if (!file_exists(PATH_HOME . "_cdn/.htaccess"))
+                $this->createDeny();
+        }
     }
 
     /**
@@ -33,7 +36,8 @@ class Store extends ElasticCrud
         if ($data = parent::getElastic($id))
             return $data;
 
-        $data = $this->json->get($id);
+        if ($this->json)
+            $data = $this->json->get($id);
         if ($data && !preg_match('/#/i', $id))
             parent::add($id, $data);
 
@@ -49,7 +53,8 @@ class Store extends ElasticCrud
      */
     public function save(string $id, array $data = []): string
     {
-        $this->json->save($id, $data);
+        if ($this->json)
+            $this->json->save($id, $data);
         return parent::save($id, $data);
     }
 
@@ -62,7 +67,8 @@ class Store extends ElasticCrud
      */
     public function add(string $id, array $data = []): string
     {
-        $this->json->add($id, $data);
+        if ($this->json)
+            $this->json->add($id, $data);
         return parent::add($id, $data);
     }
 
@@ -73,7 +79,8 @@ class Store extends ElasticCrud
      */
     public function update(string $id, array $data = null): string
     {
-        $this->json->update($id, $data);
+        if ($this->json)
+            $this->json->update($id, $data);
         return parent::update($id, $data);
     }
 
@@ -82,7 +89,8 @@ class Store extends ElasticCrud
      */
     public function delete(string $id)
     {
-        $this->json->delete($id);
+        if ($this->json)
+            $this->json->delete($id);
         parent::delete($id);
     }
 
@@ -95,7 +103,10 @@ class Store extends ElasticCrud
      */
     public function getVersion(string $id, int $version = 1): array
     {
-        return $this->json->getVersion($id, $version);
+        if ($this->json)
+            return $this->json->getVersion($id, $version);
+
+        return [];
     }
 
     /**
@@ -106,7 +117,7 @@ class Store extends ElasticCrud
      */
     public function rollBack(string $id, int $version = 1)
     {
-        if($dataBack = $this->json->getVersion($id, $version)) {
+        if ($this->json && $dataBack = $this->json->getVersion($id, $version)) {
             $this->json->update($id, $dataBack, $version);
             parent::update($id, $dataBack);
         }
