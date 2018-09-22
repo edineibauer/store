@@ -64,10 +64,14 @@ class Store extends ElasticCrud
      * @param array|null $data
      * @return string
      */
-    public function add($id = null, array $data = []): string
+    public function add($id = null, $data = null): string
     {
-        if(!$id)
+        if($id && !$data && is_array($id)){
+            $data = $id;
             $id = md5(strtotime("now") . rand(0, 100000));
+        } elseif(!is_array($data)){
+            $data = [];
+        }
 
         if ($this->json)
             $this->json->add($id, $data);
@@ -78,13 +82,17 @@ class Store extends ElasticCrud
      * Cria ou Atualiza um Registro
      *
      * @param string|null $id
-     * @param array $data
+     * @param array|null $data
      * @return string
      */
-    public function save($id = null, array $data = []): string
+    public function save($id = null, $data = null): string
     {
-        if(!$id)
+        if($id && !$data && is_array($id)){
+            $data = $id;
             $id = md5(strtotime("now") . rand(0, 100000));
+        } elseif(!is_array($data)){
+            $data = [];
+        }
 
         if ($this->json)
             $this->json->save($id, $data);
