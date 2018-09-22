@@ -66,8 +66,8 @@ class Store extends ElasticCrud
      */
     public function add($id = null, $data = null): string
     {
-        if($id && !$data && is_array($id)){
-            $data = $id;
+        if($id && !$data){
+            $data = (is_array($id) ? $id : []);
             $id = md5(strtotime("now") . rand(0, 100000));
         } elseif(!is_array($data)){
             $data = [];
@@ -87,8 +87,8 @@ class Store extends ElasticCrud
      */
     public function save($id = null, $data = null): string
     {
-        if($id && !$data && is_array($id)){
-            $data = $id;
+        if($id && !$data){
+            $data = (is_array($id) ? $id : []);
             $id = md5(strtotime("now") . rand(0, 100000));
         } elseif(!is_array($data)){
             $data = [];
