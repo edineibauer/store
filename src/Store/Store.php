@@ -38,38 +38,11 @@ class Store extends ElasticCrud
 
         if ($this->json)
             $data = $this->json->get($id);
+
         if ($data && !preg_match('/#/i', $id))
             parent::add($id, $data);
 
         return $data;
-    }
-
-    /**
-     * Cria ou Atualiza um Registro
-     *
-     * @param string $id
-     * @param array $data
-     * @return string
-     */
-    public function save(string $id, array $data = []): string
-    {
-        if ($this->json)
-            $this->json->save($id, $data);
-        return parent::save($id, $data);
-    }
-
-    /**
-     * Cria Registro
-     *
-     * @param string $id
-     * @param array|null $data
-     * @return string
-     */
-    public function add(string $id, array $data = []): string
-    {
-        if ($this->json)
-            $this->json->add($id, $data);
-        return parent::add($id, $data);
     }
 
     /**
@@ -82,6 +55,40 @@ class Store extends ElasticCrud
         if ($this->json)
             $this->json->update($id, $data);
         return parent::update($id, $data);
+    }
+
+    /**
+     * Cria Registro
+     *
+     * @param string|null $id
+     * @param array|null $data
+     * @return string
+     */
+    public function add($id = null, array $data = []): string
+    {
+        if(!$id)
+            $id = md5(strtotime("now") . rand(0, 100000));
+
+        if ($this->json)
+            $this->json->add($id, $data);
+        return parent::add($id, $data);
+    }
+
+    /**
+     * Cria ou Atualiza um Registro
+     *
+     * @param string|null $id
+     * @param array $data
+     * @return string
+     */
+    public function save($id = null, array $data = []): string
+    {
+        if(!$id)
+            $id = md5(strtotime("now") . rand(0, 100000));
+
+        if ($this->json)
+            $this->json->save($id, $data);
+        return parent::save($id, $data);
     }
 
     /**

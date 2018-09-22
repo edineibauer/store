@@ -25,32 +25,6 @@ abstract class ElasticCrud extends ElasticCore
     }
 
     /**
-     * Cria ou Atualiza Registros no ElasticSearch
-     *
-     * @param string $id
-     * @param array $data
-     * @return string
-     */
-    protected function save(string $id, array $data = []): string
-    {
-        if ($dados = $this->getElastic($id)) {
-            unset($data['created']);
-            $data = Helper::arrayMerge($dados, $data);
-        } else {
-            $data['created'] = strtotime("now");
-        }
-
-        try {
-            $data['updated'] = strtotime("now");
-            $response = $this->elasticsearch()->index($this->getBase(["id" => Convert::name($id), "body" => $data]));
-            return $response['result'];
-
-        } catch (\Exception $e) {
-            return "Erro {$e}";
-        }
-    }
-
-    /**
      * Atualiza Registro no ElasticSearch
      *
      * @param string $id
@@ -76,23 +50,51 @@ abstract class ElasticCrud extends ElasticCore
     /**
      * Adiciona Registro no ElasticSearch
      *
-     * @param string $id
+     * @param string|null $id
      * @param array $data
      * @return string
      */
-    protected function add(string $id, array $data = []): string
+    protected function add($id = null, array $data = []): string
     {
-        if (!$this->getElastic($id)) {
+        if (!$id || !$this->getElastic($id)) {
             try {
                 $data['created'] = strtotime("now");
                 $data['updated'] = strtotime("now");
-                $response = $this->elasticsearch()->index($this->getBase(["id" => Convert::name($id), "body" => $data]));
+                $body = $this->getBase($id ? ["id" => Convert::name($id), "body" => $data] : ["body" => $data]);
+                $response = $this->elasticsearch()->index($body);
                 return $response['result'];
             } catch (\Exception $e) {
                 return "Erro {$e}";
             }
         } else {
             return "exist";
+        }
+    }
+
+    /**
+     * Cria ou Atualiza Registros no ElasticSearch
+     *
+     * @param string|null $id
+     * @param array $data
+     * @return string
+     */
+    protected function save($id = null, array $data = []): string
+    {
+        if ($id && $dados = $this->getElastic($id)) {
+            unset($data['created']);
+            $data = Helper::arrayMerge($dados, $data);
+        } else {
+            $data['created'] = strtotime("now");
+        }
+
+        try {
+            $data['updated'] = strtotime("now");
+            $body = $this->getBase($id ? ["id" => Convert::name($id), "body" => $data] : ["body" => $data]);
+            $response = $this->elasticsearch()->index($body);
+            return $response['result'];
+
+        } catch (\Exception $e) {
+            return "Erro {$e}";
         }
     }
 
