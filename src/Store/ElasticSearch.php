@@ -336,13 +336,13 @@ class ElasticSearch extends ElasticCore
     /**
      * Obtém o número de resultados encontrados
      *
-     * @return mixed
+     * @return int
      */
-    public function getCount()
+    public function getCount(): int
     {
         $this->query();
 
-        $cont = $this->result['hits']['total'];
+        $cont = $this->result['hits']['total'] ?? 0;
         if (!empty($this->iquals)) {
             foreach ($this->result['hits']['hits'] as $item) {
                 foreach ($this->iquals as $c => $v) {
